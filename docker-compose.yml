@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: sales_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: sales_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - sales_network
+
+  redis:
+    image: redis:7
+    container_name: sales_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - sales_network
+
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: sales_chroma
+    ports:
+      - "8001:8000"
+    environment:
+      - IS_PERSISTENT=TRUE
+      - PERSIST_DIRECTORY=/chroma/chroma
+    volumes:
+      - chroma_data:/chroma/chroma
+    networks:
+      - sales_network
+
+volumes:
+  postgres_data:
+  chroma_data:
+
+networks:
+  sales_network:
+    driver: bridge
