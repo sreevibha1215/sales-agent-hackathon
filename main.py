@@ -3,8 +3,11 @@ from fastapi import FastAPI, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from typing import Optional
 from dotenv import load_dotenv
 from backend.auth.auth import signup_user, login_user, logout_user, get_current_user
+from backend.tools.gemini_tool import extract_config
+from backend.database.db import get_connection
 
 load_dotenv()
 
@@ -28,13 +31,26 @@ class AuthRequest(BaseModel):
 class ConfigExtractRequest(BaseModel):
     text: str
 
+class WorkspaceCreate(BaseModel):
+    name: str
+
+class CompanyAdd(BaseModel):
+    name: str
+
+# ---------- Helper ----------
+def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    result = get_current_user(credentials.credentials)
+    if not result["success"]:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    return result["user"]
+
 # ---------- Auth Routes ----------
 @app.post("/api/auth/signup")
 async def signup(req: AuthRequest):
     result = signup_user(req.email, req.password)
     if not result["success"]:
         raise HTTPException(status_code=400, detail=result["error"])
-    return {"message": "Signup successful", "user": str(result["user"])}
+    return {"message": "Signup successful"}
 
 @app.post("/api/auth/login")
 async def login(req: AuthRequest):
@@ -45,41 +61,106 @@ async def login(req: AuthRequest):
 
 @app.post("/api/auth/logout")
 async def logout(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    result = logout_user(credentials.credentials)
+    logout_user(credentials.credentials)
     return {"message": "Logged out"}
 
 @app.get("/api/auth/me")
-async def me(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    result = get_current_user(credentials.credentials)
-    if not result["success"]:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    return {"user": str(result["user"])}
+async def me(user=Depends(verify_token)):
+    return {"user": user}
 
-# ---------- Config Extract Route ----------
+# ---------- Config Extract ----------
 @app.post("/api/config/extract")
-async def config_extract(
-    req: ConfigExtractRequest,
-    credentials: HTTPAuthorizationCredentials = Depends(security)
-):
-    # Verify token first
-    user = get_current_user(credentials.credentials)
-    if not user["success"]:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    
-    # TODO: Person A will add LangGraph agent here
-    return {
-        "status": "ok",
-        "input": req.text,
-        "extracted": {
-            "company_type": "B2B SaaS",
-            "target_market": "SMBs",
-            "region": "India"
-        }
-    }
+async def config_extract(req: ConfigExtractRequest, user=Depends(verify_token)):
+    result = extract_config(req.text)
+    if not result["success"]:
+        raise HTTPException(status_code=500, detail=result["error"])
+    return result["config"]
+
+# ---------- Workspace Routes ----------
+@app.post("/api/workspaces")
+async def create_workspace(req: WorkspaceCreate, user=Depends(verify_token)):
+    conn = get_connection()
+    cur = conn.cursor()
+    user_id = user.get("sub", "unknown")
+    cur.execute(
+        "INSERT INTO workspaces (user_id, name) VALUES (%s, %s) RETURNING id, name, created_at",
+        (user_id, req.name)
+    )
+    row = cur.fetchone()
+    conn.commit()
+    cur.close()
+    conn.close()
+    return {"id": row[0], "name": row[1], "created_at": str(row[2])}
+
+@app.get("/api/workspaces")
+async def list_workspaces(user=Depends(verify_token)):
+    conn = get_connection()
+    cur = conn.cursor()
+    user_id = user.get("sub", "unknown")
+    cur.execute(
+        "SELECT id, name, created_at FROM workspaces WHERE user_id = %s ORDER BY created_at DESC",
+        (user_id,)
+    )
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    return [{"id": r[0], "name": r[1], "created_at": str(r[2])} for r in rows]
+
+@app.get("/api/workspaces/{workspace_id}")
+async def get_workspace(workspace_id: int, user=Depends(verify_token)):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT id, name, config, created_at FROM workspaces WHERE id = %s", (workspace_id,))
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
+    if not row:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+    return {"id": row[0], "name": row[1], "config": row[2], "created_at": str(row[3])}
+
+@app.delete("/api/workspaces/{workspace_id}")
+async def delete_workspace(workspace_id: int, user=Depends(verify_token)):
+    conn = get_connection()
+    cur = conn.cursor()
+    # Delete companies first, then workspace
+    cur.execute("DELETE FROM companies WHERE workspace_id = %s", (workspace_id,))
+    cur.execute("DELETE FROM workspaces WHERE id = %s", (workspace_id,))
+    conn.commit()
+    cur.close()
+    conn.close()
+    return {"message": "Workspace deleted"}
+
+# ---------- Company Routes ----------
+@app.post("/api/workspaces/{workspace_id}/companies")
+async def add_company(workspace_id: int, req: CompanyAdd, user=Depends(verify_token)):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "INSERT INTO companies (workspace_id, name) VALUES (%s, %s) RETURNING id, name, status",
+        (workspace_id, req.name)
+    )
+    row = cur.fetchone()
+    conn.commit()
+    cur.close()
+    conn.close()
+    return {"id": row[0], "name": row[1], "status": row[2]}
+
+@app.get("/api/workspaces/{workspace_id}/companies")
+async def list_companies(workspace_id: int, user=Depends(verify_token)):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT id, name, score, status FROM companies WHERE workspace_id = %s",
+        (workspace_id,)
+    )
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    return [{"id": r[0], "name": r[1], "score": r[2], "status": r[3]} for r in rows]
 
 @app.get("/")
 async def root():
-    return {"message": "Sales Agent API running"}
+    return {"message": "Sales Agent API running ✅"}
 
 if __name__ == "__main__":
     import uvicorn
