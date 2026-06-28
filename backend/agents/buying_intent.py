@@ -42,7 +42,7 @@ class BuyingIntentAgent:
 
     def _calculate_intent_score(self, company: Dict) -> int:
         score = 0
-        config = company.get('config', {})
+        config = company.get('icp_config', {})
 
         # Funding signals (30%)
         funding = self._parse_number(company.get('funding_raised', 0))

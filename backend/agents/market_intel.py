@@ -20,7 +20,7 @@ class MarketIntelAgent:
         logger.info(f"🔍 MarketIntelAgent initialized with Tavily key: {bool(self.tavily_key)}")
 
     async def run(self, state: Dict[str, Any]) -> Dict[str, Any]:
-        config = state.get('config', {})
+        config = state.get('icp_config', {})
         industry = config.get('industry', 'SaaS')
         geography = config.get('geography', 'United States')
 

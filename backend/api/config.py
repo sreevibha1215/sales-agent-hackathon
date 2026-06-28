@@ -1,10 +1,13 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 import os
 import json
 import re
 from dotenv import load_dotenv
 from groq import Groq
+from typing import Optional
+from auth.dependencies import verify_token  # use shared dependency
+from database.db import get_connection      # add this
 
 load_dotenv()
 
@@ -12,9 +15,10 @@ router = APIRouter()
 
 class ConfigExtractRequest(BaseModel):
     description: str
+    workspace_id: Optional[str] = None
 
 @router.post('/extract')
-async def extract_config(request: ConfigExtractRequest):
+async def extract_config(request: ConfigExtractRequest, user=Depends(verify_token)):
     """Extract ICP using Groq AI"""
     
     api_key = os.getenv('GROQ_API_KEY')
@@ -22,12 +26,12 @@ async def extract_config(request: ConfigExtractRequest):
     
     if not api_key:
         print("⚠️ No Groq API key - using fallback")
-        return get_smart_config(request.description)
-    
-    try:
-        client = Groq(api_key=api_key)
-        
-        prompt = f"""Extract B2B sales configuration from this business description.
+        result = get_smart_config(request.description)
+    else:
+        try:
+            client = Groq(api_key=api_key)
+            
+            prompt = f"""Extract B2B sales configuration from this business description.
 
 "{request.description}"
 
@@ -50,39 +54,58 @@ Return ONLY this JSON object, no other text:
     "tech_stack": ["relevant technologies the target company might use"]
 }}"""
 
-        response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[{"role": "user", "content": prompt}],
-            response_format={"type": "json_object"},  # forces valid JSON always
-            temperature=0.1  # low temp = consistent structured output
-        )
-        
-        text = response.choices[0].message.content
-        config = json.loads(text)
-        
-        # Ensure required fields exist
-        required_fields = ['industry', 'geography', 'min_employees', 'max_employees',
-                           'personas', 'triggers', 'product', 'tech_stack']
-        for field in required_fields:
-            if field not in config or config[field] is None:
-                if field in ['personas', 'triggers', 'tech_stack']:
-                    config[field] = []
-                elif field in ['min_employees', 'max_employees']:
-                    config[field] = 0
-                else:
-                    config[field] = "Not specified"
-        
-        print(f"✅ Groq extraction successful")
-        return {
-            'config': config,
-            'confidence': 'high',
-            'source': 'groq',
-            'message': '✅ Configuration extracted successfully!'
-        }
-        
-    except Exception as e:
-        print(f"⚠️ Groq error: {e}")
-        return get_smart_config(request.description)
+            response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{"role": "user", "content": prompt}],
+                response_format={"type": "json_object"},
+                temperature=0.1
+            )
+            
+            text = response.choices[0].message.content
+            config = json.loads(text)
+            
+            required_fields = ['industry', 'geography', 'min_employees', 'max_employees',
+                               'personas', 'triggers', 'product', 'tech_stack']
+            for field in required_fields:
+                if field not in config or config[field] is None:
+                    if field in ['personas', 'triggers', 'tech_stack']:
+                        config[field] = []
+                    elif field in ['min_employees', 'max_employees']:
+                        config[field] = 0
+                    else:
+                        config[field] = "Not specified"
+            
+            print(f"✅ Groq extraction successful")
+            result = {
+                'config': config,
+                'confidence': 'high',
+                'source': 'groq',
+                'message': '✅ Configuration extracted successfully!'
+            }
+            
+        except Exception as e:
+            print(f"⚠️ Groq error: {e}")
+            result = get_smart_config(request.description)
+
+    # ✅ Save config to workspace if workspace_id provided
+    if request.workspace_id:
+        try:
+            conn = get_connection()
+            cur = conn.cursor()
+            cur.execute(
+                "UPDATE workspaces SET config = %s WHERE id = %s",
+                (json.dumps(result['config']), request.workspace_id)
+            )
+            conn.commit()
+            cur.close()
+            conn.close()
+            result['saved'] = True
+            print(f"✅ Config saved to workspace {request.workspace_id}")
+        except Exception as e:
+            result['saved'] = False
+            print(f"⚠️ Failed to save config: {e}")
+
+    return result
 
 
 def get_smart_config(description: str) -> dict:

@@ -37,7 +37,7 @@ class ICPQualifierAgent:
     }
 
     async def run(self, state: Dict[str, Any]) -> Dict[str, Any]:
-        config = state.get('config', {})
+        config = state.get('icp_config', {})
         companies = state.get('companies', [])
 
         print(f"🎯 Qualifying {len(companies)} companies against ICP...")

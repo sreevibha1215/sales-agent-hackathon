@@ -3,7 +3,7 @@ from typing import Dict, Any, List
 class RecommendationAgent:
     async def run(self, state: Dict[str, Any]) -> Dict[str, Any]:
         scored_companies = state.get('scores', [])
-        config = state.get('config', {})
+        config = state.get('icp_config', {})
         
         # Sort by intent score
         sorted_companies = sorted(
@@ -45,25 +45,11 @@ class RecommendationAgent:
             })
         
         state['recommendations'] = recommendations
-        
-        # Summary stats
-        state['summary'] = {
-            'total_companies_found': len(state.get('companies', [])),
-            'qualified_companies': len(state.get('qualified_companies', [])),
-            'enriched_companies': len(state.get('enriched_companies', [])),
-            'total_contacts': sum(
-                len(r.get('contacts', [])) for r in recommendations
-            ),
-            'avg_intent_score': round(
-                sum(r['intent_score'] for r in recommendations) / len(recommendations), 1
-            ) if recommendations else 0,
-            'top_company': recommendations[0]['company'] if recommendations else None,
-            'agents_completed': state.get('completed_agents', [])
-        }
-        
-        print(f"✅ Generated {len(recommendations)} recommendations")
         print(f"📊 Summary: {state['summary']}")
-        
+        state['completed_agents'] = state.get('completed_agents', []) + ['recommendation']
+        print(f"✅ Generated {len(recommendations)} recommendations")
+
+       
         return state
     
     def _suggest_next_action(self, company: Dict, rank: int) -> str:

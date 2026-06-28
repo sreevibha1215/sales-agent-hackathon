@@ -1,9 +1,9 @@
+# 
+
 # backend/orchestration/graph.py
 
 from typing import Dict, Any, List, TypedDict, Literal
 from langgraph.graph import StateGraph, END
-from langgraph.checkpoint.memory import MemorySaver
-from langgraph.types import interrupt
 
 from agents.market_intel import MarketIntelAgent
 from agents.icp_qualifier import ICPQualifierAgent
@@ -11,16 +11,11 @@ from agents.company_intel import CompanyIntelAgent
 from agents.contact_intel import ContactIntelAgent
 from agents.buying_intent import BuyingIntentAgent
 from agents.recommendation import RecommendationAgent
-from typing import Dict, Any, List, TypedDict, Literal
-from langgraph.graph import StateGraph, END
-
-
-
 
 # 1. Define State
 class AgentState(TypedDict):
     workspace_id: str
-    config: Dict[str, Any]
+    icp_config: Dict[str, Any]
     companies: List[Dict[str, Any]]
     qualified_companies: List[Dict[str, Any]]
     enriched_companies: List[Dict[str, Any]]
@@ -30,6 +25,8 @@ class AgentState(TypedDict):
     completed_agents: List[str]
     error: str
     status: str
+    approved: bool
+    summary: Dict[str, Any]
 
 # 2. Initialize Agents
 agents = {
@@ -79,8 +76,7 @@ async def buying_intent_node(state: AgentState) -> AgentState:
 
 async def human_approval_node(state: AgentState) -> AgentState:
     print("👤 Human Approval Checkpoint...")
-    # For demo, auto-approve (can be modified for real approval)
-    state['approved'] = True
+    state['approved'] = True  # Auto-approve for demo
     return state
 
 async def recommendation_node(state: AgentState) -> AgentState:
@@ -113,10 +109,10 @@ def route_after_company(state: AgentState) -> Literal["contact_intel", "end"]:
     return "contact_intel"
 
 def route_after_contact(state: AgentState) -> Literal["buying_intent", "end"]:
-    if not state.get('contacts'):
-        print("⚠️ No contacts found - continuing with intent scoring")
-    else:
+    if state.get('contacts'):
         print(f"✅ {len(state['contacts'])} contacts found")
+    else:
+        print("⚠️ No contacts found - continuing with intent scoring")
     return "buying_intent"
 
 def route_after_buying(state: AgentState) -> Literal["human_approval", "end"]:
@@ -136,7 +132,6 @@ def route_after_approval(state: AgentState) -> Literal["recommendation", "end"]:
 def build_discovery_graph():
     workflow = StateGraph(AgentState)
     
-    # Add nodes
     workflow.add_node("market_intel", market_intel_node)
     workflow.add_node("icp_qualifier", icp_qualifier_node)
     workflow.add_node("company_intel", company_intel_node)
@@ -145,10 +140,8 @@ def build_discovery_graph():
     workflow.add_node("human_approval", human_approval_node)
     workflow.add_node("recommendation", recommendation_node)
     
-    # Set entry point
     workflow.set_entry_point("market_intel")
     
-    # Add conditional edges
     workflow.add_conditional_edges(
         "market_intel",
         route_after_market_intel,
@@ -187,7 +180,7 @@ def build_discovery_graph():
     
     workflow.add_edge("recommendation", END)
     
-    return workflow.compile(checkpointer=MemorySaver())
+    return workflow.compile()
 
 # 6. Orchestrator
 class DiscoveryOrchestrator:
@@ -198,7 +191,7 @@ class DiscoveryOrchestrator:
     async def run(self, workspace_id: str, config: Dict[str, Any]) -> Dict[str, Any]:
         initial_state = {
             "workspace_id": workspace_id,
-            "config": config,
+            "icp_config": config,
             "companies": [],
             "qualified_companies": [],
             "enriched_companies": [],
@@ -212,18 +205,29 @@ class DiscoveryOrchestrator:
         }
         
         try:
-            final_state = await self.graph.ainvoke(
-                initial_state,
-                config={"configurable": {"thread_id": f"thread_{workspace_id}"}}
-            )
+            final_state = await self.graph.ainvoke(initial_state)
+            recommendations = final_state.get('recommendations', [])
             
+            summary = {
+            'total_companies_found': len(final_state.get('companies', [])),
+            'qualified_companies': len(final_state.get('qualified_companies', [])),
+            'enriched_companies': len(final_state.get('enriched_companies', [])),
+            'total_contacts': sum(len(r.get('contacts', [])) for r in recommendations),
+            'avg_intent_score': round(
+                sum(r['intent_score'] for r in recommendations) / len(recommendations), 1
+            ) if recommendations else 0,
+            'top_company': recommendations[0]['company'] if recommendations else None,
+            'agents_completed': final_state.get('completed_agents', [])
+                  }
+
+
             return {
                 "status": "completed",
                 "companies": final_state.get('companies', []),
                 "qualified_companies": final_state.get('qualified_companies', []),
                 "contacts": final_state.get('contacts', []),
                 "recommendations": final_state.get('recommendations', []),
-                "summary": final_state.get('summary', {}),
+                "summary":summary,
                 "completed_agents": final_state.get('completed_agents', [])
             }
             

@@ -1,4 +1,18 @@
-# Python
+# ============================================
+# ENVIRONMENT VARIABLES - NEVER COMMIT THESE
+# ============================================
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+*.env
+backend/.env
+frontend/.env
+
+# ============================================
+# PYTHON
+# ============================================
 __pycache__/
 *.py[cod]
 *$py.class
@@ -23,28 +37,67 @@ wheels/
 .installed.cfg
 *.egg
 
-# Environment
-.env
-.env.local
-.env.*.local
+# Virtual Environment
+.venv
 
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ============================================
+# DATABASE
+# ============================================
+*.db
+*.sqlite
+*.sqlite3
+
+# ============================================
+# NODE / FRONTEND
+# ============================================
+node_modules/
+.next/
+.cache/
+.parcel-cache/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ============================================
+# LOGS
+# ============================================
+logs/
+*.log
+
+# ============================================
 # IDE
+# ============================================
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# Docker
-docker-compose.override.yml
-
-# Logs
-logs/
-*.log
-
+# ============================================
 # OS
+# ============================================
 .DS_Store
 Thumbs.db
 
-# ChromaDB
+# ============================================
+# DOCKER
+# ============================================
+docker-compose.override.yml
+
+# ============================================
+# CHROMADB
+# ============================================
 chroma_data/
+
+# ============================================
+# MISC
+# ============================================
+*.zip
+*.tar.gz
+tmp/
+.temp/

@@ -20,7 +20,7 @@ class ContactIntelAgent:
 
     async def run(self, state: Dict[str, Any]) -> Dict[str, Any]:
         companies = state.get('enriched_companies', [])
-        personas = state.get('config', {}).get('personas', ['VP of Sales', 'CRO'])
+        personas = state.get('icp_config', {}).get('personas', ['VP of Sales', 'CRO'])
 
         all_contacts = []
 
@@ -111,6 +111,8 @@ class ContactIntelAgent:
                         import re
                         slug = re.sub(r'[^a-z0-9-]', '', slug)
                         linkedin = f"https://linkedin.com/in/{slug}"
+                    if not first_name and not last_name:
+                        continue  
 
                     contacts.append({
                         'name': f"{first_name} {last_name}".strip(),
