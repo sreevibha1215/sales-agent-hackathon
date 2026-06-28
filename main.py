@@ -36,6 +36,9 @@ class WorkspaceCreate(BaseModel):
 
 class CompanyAdd(BaseModel):
     name: str
+class DiscoverRequest(BaseModel):
+    workspace_id: int
+    companies: list[str]
 
 # ---------- Helper ----------
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
@@ -161,6 +164,60 @@ async def list_companies(workspace_id: int, user=Depends(verify_token)):
 @app.get("/")
 async def root():
     return {"message": "Sales Agent API running ✅"}
+
+@app.post("/api/discover")
+async def discover(req: DiscoverRequest, user=Depends(verify_token)):
+    """Run discovery on list of companies - uses real Tavily search"""
+    from backend.tools.search_tool import search_company
+    from backend.memory.redis_client import save_to_memory, get_from_memory
+    
+    results = []
+    
+    for company_name in req.companies:
+        # Check Redis cache first
+        cached = get_from_memory(str(req.workspace_id), company_name)
+        if cached["success"] and cached["data"]:
+            results.append(cached["data"])
+            continue
+        
+        # Search via Tavily
+        search_result = search_company(company_name)
+        
+        if search_result["success"] and search_result["results"]:
+            top = search_result["results"][0]
+            company_data = {
+                "name": company_name,
+                "summary": top["content"][:300],
+                "url": top["url"],
+                "score": round(top["score"] * 100, 1),
+                "status": "discovered"
+            }
+        else:
+            company_data = {
+                "name": company_name,
+                "summary": "No data found",
+                "url": "",
+                "score": 0,
+                "status": "failed"
+            }
+        
+        # Save to Redis memory
+        save_to_memory(str(req.workspace_id), company_name, company_data)
+        
+        # Update DB score
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE companies SET score = %s, status = %s WHERE workspace_id = %s AND name = %s",
+            (company_data["score"], company_data["status"], req.workspace_id, company_name)
+        )
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        results.append(company_data)
+    
+    return {"workspace_id": req.workspace_id, "results": results}
 
 if __name__ == "__main__":
     import uvicorn
