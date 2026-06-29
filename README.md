@@ -110,36 +110,7 @@ Instead of spending hours researching, the sales manager simply writes:
 ---
 
 ## 🏗️ Architecture
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                     React Frontend                      │
-│           (Tailwind CSS + Framer Motion)                │
-└────────────────────────┬────────────────────────────────┘
-                         │ REST API
-┌────────────────────────▼────────────────────────────────┐
-│                  FastAPI Backend                         │
-│              (JWT Auth via Supabase)                     │
-└────────────────────────┬────────────────────────────────┘
-                         │
-┌────────────────────────▼────────────────────────────────┐
-│              LangGraph Agent Orchestrator                │
-│                                                         │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐              │
-│  │ Market   │  │   ICP    │  │ Company  │              │
-│  │ Intel    │→ │ Qualify  │→ │  Intel   │              │
-│  └──────────┘  └──────────┘  └──────────┘              │
-│        ┌──────────┐  ┌──────────┐  ┌──────────┐        │
-│        │ Contact  │→ │  Intent  │→ │  Reco.   │        │
-│        │  Intel   │  │  Score   │  │  Agent   │        │
-│        └──────────┘  └──────────┘  └──────────┘        │
-└─────────────────────────────────────────────────────────┘
-                         │
-┌────────────────────────▼────────────────────────────────┐
-│              Data & External Services                    │
-│  PostgreSQL │ Redis │ ChromaDB │ Groq │ Tavily │ Hunter │
-└─────────────────────────────────────────────────────────┘
-```
+![Architecture Diagram](system_architecture_leadSenseAI.jpg)
 
 ---
 
