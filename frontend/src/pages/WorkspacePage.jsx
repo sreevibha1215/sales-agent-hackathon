@@ -6,7 +6,10 @@ import ICPForm from '../components/ICPForm';
 import AgentProgress from '../components/AgentProgress';
 import ResultsCards from '../components/ResultsCards';
 import ResultsChatbot from '../components/ResultsChatbot';
-import { ArrowLeft, RefreshCw, Loader2 } from 'lucide-react';
+import { RefreshCw, Loader2, Sparkles, CheckCircle2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+const AGENTS = ['market_intel', 'icp_qualifier', 'company_intel', 'contact_intel', 'buying_intent', 'recommendation'];
 
 export default function WorkspacePage() {
   const { workspaceId } = useParams();
@@ -14,31 +17,27 @@ export default function WorkspacePage() {
 
   const [workspace, setWorkspace] = useState(null);
   const [wsLoading, setWsLoading] = useState(true);
-
-  // Pipeline state
-  const [phase, setPhase] = useState('input'); // 'input' | 'running' | 'done'
+  const [phase, setPhase] = useState('input');
   const [completedAgents, setCompletedAgents] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
   const [summary, setSummary] = useState({});
   const [runError, setRunError] = useState('');
 
-  // Fake streaming progress while waiting for backend (pipeline takes 30-90s)
-  const AGENTS = ['market_intel', 'icp_qualifier', 'company_intel', 'contact_intel', 'buying_intent', 'recommendation'];
-
   useEffect(() => {
-    if (workspaceId === 'new') {
-      setWsLoading(false);
-      return;
-    }
+    setPhase('input');
+    setCompletedAgents([]);
+    setRecommendations([]);
+    setSummary({});
+    setRunError('');
+    setWorkspace(null);
+
+    if (workspaceId === 'new') { setWsLoading(false); return; }
+
+    setWsLoading(true);
     wsApi.get(workspaceId)
-      .then(ws => {
-        setWorkspace(ws);
-        // Check if existing results
-        return discoveryApi.results(workspaceId);
-      })
+      .then(ws => { setWorkspace(ws); return discoveryApi.results(workspaceId); })
       .then(data => {
         if (data.companies?.length > 0) {
-          // Parse company data from DB
           const recs = data.companies.map(c => {
             try { return typeof c.data === 'string' ? JSON.parse(c.data) : c.data; }
             catch { return { company: c.name, intent_score: c.score || 0, contacts: [] }; }
@@ -58,12 +57,9 @@ export default function WorkspacePage() {
     setRunError('');
 
     let wsId = workspaceId;
-
-    // If "new", create workspace first
     if (workspaceId === 'new') {
       try {
-        const industry = config.industry || 'Discovery';
-        const ws = await wsApi.create(`${industry} — ${new Date().toLocaleDateString()}`);
+        const ws = await wsApi.create(`${config.industry || 'Discovery'} — ${new Date().toLocaleDateString()}`);
         wsId = ws.id;
         setWorkspace(ws);
         navigate(`/workspace/${ws.id}`, { replace: true });
@@ -74,14 +70,13 @@ export default function WorkspacePage() {
       }
     }
 
-    // Animate progress while API runs
     let agentIdx = 0;
     const ticker = setInterval(() => {
       if (agentIdx < AGENTS.length - 1) {
         agentIdx++;
         setCompletedAgents(AGENTS.slice(0, agentIdx));
       }
-    }, 8000); // ~8s per agent step
+    }, 8000);
 
     try {
       const result = await discoveryApi.start(wsId, config);
@@ -99,67 +94,105 @@ export default function WorkspacePage() {
 
   if (wsLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <Loader2 className="w-6 h-6 text-brand-400 spin" />
+      <div className="flex-1 flex items-center justify-center page-content">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+            style={{ background: 'linear-gradient(135deg, #7a4a6a, #935073)', boxShadow: '0 0 20px rgba(147,80,115,0.4)' }}>
+            <Loader2 className="w-5 h-5 spin text-[#f0e6e0]" />
+          </div>
+          <span className="text-sm text-[#9a8a92]">Loading workspace…</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 overflow-y-auto">
-      <div className="max-w-4xl mx-auto p-6 space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-3">
+    <div className="flex-1 overflow-y-auto page-content">
+      <div className="max-w-4xl mx-auto p-8 space-y-6">
+
+        <motion.div
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+          className="flex items-start justify-between">
           <div>
-            <h1 className="text-lg font-bold text-white">
-              {workspace?.name || 'New discovery'}
+            <div className="flex items-center gap-2 mb-1">
+              {phase === 'running' && <Loader2 className="w-3.5 h-3.5 spin text-[#935073]" />}
+              {phase === 'done' && <CheckCircle2 className="w-3.5 h-3.5 text-[#b5c9a8]" />}
+              {phase === 'input' && <Sparkles className="w-3.5 h-3.5 text-[#935073]" />}
+              <span className="text-xs font-semibold uppercase tracking-widest text-[#9a8a92]">
+                {phase === 'input' && 'Configure'}
+                {phase === 'running' && 'Processing'}
+                {phase === 'done' && 'Results'}
+              </span>
+            </div>
+            <h1 className="text-2xl font-extrabold tracking-tight" style={{ letterSpacing: '-0.03em' }}>
+              <span className="text-[#f0e6e0]">
+                {workspace?.name || 'New discovery'}
+              </span>
             </h1>
-            <p className="text-sm text-muted">
-              {phase === 'input' && 'Describe your ideal customer to start discovery'}
-              {phase === 'running' && 'Agents are running — this takes 1–2 minutes'}
-              {phase === 'done' && `${recommendations.length} companies found`}
+            <p className="text-[15px] mt-1 text-[#b098a8]">
+              {phase === 'input' && 'Describe your ideal customer to start AI discovery'}
+              {phase === 'running' && 'Agents are searching, qualifying and enriching — 60–90 seconds'}
+              {phase === 'done' && `${recommendations.length} companies found and qualified`}
             </p>
           </div>
+
           {phase === 'done' && (
-            <button onClick={() => setPhase('input')}
-              className="ml-auto btn-ghost text-sm flex items-center gap-1.5">
+            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+              onClick={() => setPhase('input')}
+              className="btn-outline text-sm flex items-center gap-2">
               <RefreshCw className="w-3.5 h-3.5" /> New run
-            </button>
+            </motion.button>
           )}
-        </div>
+        </motion.div>
 
-        {/* Error */}
-        {runError && (
-          <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-red-400 text-sm">
-            {runError}
-          </div>
-        )}
+        <AnimatePresence>
+          {runError && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="rounded-xl px-4 py-3 text-sm"
+              style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.12)', color: '#f87171' }}>
+              {runError}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        {/* Phase: Input */}
-        {phase === 'input' && (
-          <ICPForm onSubmit={runPipeline} loading={false} />
-        )}
+        <AnimatePresence mode="wait">
+          {phase === 'input' && (
+            <motion.div key="input" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.3 }}>
+              <ICPForm onSubmit={runPipeline} loading={false} />
+            </motion.div>
+          )}
 
-        {/* Phase: Running */}
-        {phase === 'running' && (
-          <div className="space-y-4">
-            <AgentProgress completedAgents={completedAgents} isRunning={true} />
-            <div className="text-center text-xs text-muted animate-pulse">
-              The pipeline searches the web, enriches company data, and finds contacts in real time — usually 60–90 seconds
-            </div>
-          </div>
-        )}
+          {phase === 'running' && (
+            <motion.div key="running" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.3 }}
+              className="space-y-4">
+              <AgentProgress completedAgents={completedAgents} isRunning={true} />
+              <motion.div animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 2, repeat: Infinity }}
+                className="text-center text-xs py-3 rounded-xl"
+                style={{
+                  color: '#9a8a92',
+                  background: 'rgba(147,80,115,0.05)',
+                  border: '1px solid rgba(147,80,115,0.08)',
+                }}>
+                🤖 The pipeline searches the web, enriches company data, and finds contacts in real time
+              </motion.div>
+            </motion.div>
+          )}
 
-        {/* Phase: Done */}
-        {phase === 'done' && (
-          <>
-            <AgentProgress completedAgents={AGENTS} isRunning={false} />
-            <ResultsCards recommendations={recommendations} summary={summary} />
-          </>
-        )}
+          {phase === 'done' && (
+            <motion.div key="done" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.3 }}
+              className="space-y-6">
+              <AgentProgress completedAgents={AGENTS} isRunning={false} />
+              <ResultsCards recommendations={recommendations} summary={summary} />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* Floating chatbot — only when results are available */}
       {phase === 'done' && recommendations.length > 0 && (
         <ResultsChatbot recommendations={recommendations} summary={summary} />
       )}

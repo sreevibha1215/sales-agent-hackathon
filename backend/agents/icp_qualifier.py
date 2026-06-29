@@ -2,18 +2,15 @@ from typing import Dict, Any, List, Tuple
 
 class ICPQualifierAgent:
     
-    # Industry synonym mapping
     INDUSTRY_SYNONYMS = {
-        'manufacturing': ['manufacturing', 'industrial', 'production', 'factory',
-                         'steel', 'chemicals', 'automotive', 'automobile', 'auto',
-                         'machinery', 'engineering', 'technology', 'services',
-                         'supplier', 'components', 'equipment', 'electronics'],
         'saas': ['saas', 'software', 'cloud', 'platform', 'crm', 'erp',
                  'solution', 'application', 'tech', 'digital', 'subscription'],
         'fintech': ['fintech', 'financial', 'banking', 'payment', 'insurance',
                     'investment', 'lending', 'credit', 'finance', 'money'],
+        'manufacturing': ['manufacturing', 'industrial', 'production', 'factory',
+                         'steel', 'chemicals', 'automotive', 'automobile'],
         'retail': ['retail', 'ecommerce', 'store', 'shop', 'commerce',
-                   'consumer', 'merchandise', 'distribution', 'wholesale'],
+                   'consumer', 'merchandise', 'distribution'],
         'healthcare': ['healthcare', 'health', 'medical', 'hospital', 'pharma',
                        'pharmaceutical', 'biotech', 'clinical', 'patient', 'care'],
         'energy': ['energy', 'oil', 'gas', 'solar', 'wind', 'power',
@@ -22,18 +19,13 @@ class ICPQualifierAgent:
                       'school', 'course', 'academic', 'student', 'teaching'],
     }
 
-    # Geography synonym mapping  
     GEO_SYNONYMS = {
-        'germany': ['germany', 'german', 'deutschland', 'berlin', 'munich',
-                    'hamburg', 'frankfurt', 'stuttgart', 'cologne', 'dusseldorf',
-                    'gmbh', 'ag', ' se ', 'thyssenkrupp', 'bosch', 'siemens',
-                    'bayer', 'basf', 'bmw', 'volkswagen', 'mercedes', 'adidas'],
         'india': ['india', 'indian', 'delhi', 'mumbai', 'bangalore', 'hyderabad',
-                  'chennai', 'pune', 'pvt', 'ltd'],
+                  'chennai', 'pune', 'gurgaon', 'noida', 'pvt', 'ltd'],
         'usa': ['usa', 'united states', 'america', 'american', 'new york',
-                'california', 'texas', 'chicago', 'inc', 'corp', 'llc'],
+                'california', 'texas', 'chicago', 'san francisco', 'inc', 'corp'],
         'uk': ['uk', 'britain', 'british', 'england', 'london', 'plc', 'ltd'],
-        'north america': ['usa', 'canada', 'america', 'american', 'inc', 'corp'],
+        'europe': ['europe', 'germany', 'france', 'spain', 'italy', 'netherlands'],
     }
 
     async def run(self, state: Dict[str, Any]) -> Dict[str, Any]:
@@ -46,7 +38,8 @@ class ICPQualifierAgent:
         for company in companies:
             score, reasons = self._calculate_score(company, config)
 
-            if score >= 0.2:  # low threshold — company intel will refine later
+            # Higher threshold - only keep good matches
+            if score >= 0.3:  # Increased from 0.2
                 qualified.append({
                     **company,
                     'icp_score': round(score, 2),
@@ -57,23 +50,23 @@ class ICPQualifierAgent:
             else:
                 print(f"  ❌ {company.get('name')} — score: {score:.2f} — too low")
 
-        # Always keep at least 6 companies for demo
-        if len(qualified) < 6 and len(companies) > 0:
+        # Always keep top companies
+        if len(qualified) < 4 and len(companies) > 0:
             print(f"⚠️ Too few qualified, keeping top by relevance")
             sorted_all = sorted(companies, key=lambda c: c.get('relevance_score', 0), reverse=True)
             for company in sorted_all:
-                if len(qualified) >= 6:
+                if len(qualified) >= 4:
                     break
                 already = any(q.get('name') == company.get('name') for q in qualified)
                 if not already:
                     qualified.append({
                         **company,
-                        'icp_score': 0.4,
+                        'icp_score': 0.3,
                         'icp_reasons': ['Selected by relevance score'],
                         'qualified': True
                     })
 
-        state['qualified_companies'] = qualified[:10]
+        state['qualified_companies'] = qualified[:8]
         print(f"✅ {len(state['qualified_companies'])} companies qualified")
         return state
 
@@ -81,73 +74,97 @@ class ICPQualifierAgent:
         score = 0.0
         reasons = []
 
-        # Build searchable text from all available fields
         name = company.get('name', '')
         description = company.get('description', '')
         url = company.get('url', '')
-        search_text = f"{name} {description} {url}".lower()
+        search_text = f"{name} {description}".lower()
 
-        # --- Industry match (40%) ---
+        # --- Industry match (35%) ---
         industry = config.get('industry', '').lower()
         if industry:
             # Direct match
             if industry in search_text:
-                score += 0.4
-                reasons.append(f"Industry match: {industry}")
+                score += 0.35
+                reasons.append(f"Industry: {industry}")
             else:
-                # Synonym match
+                # Exact synonym match only
                 synonyms = self._get_industry_synonyms(industry)
                 matched_synonyms = [s for s in synonyms if s in search_text]
                 if matched_synonyms:
-                    # More synonyms = higher confidence
-                    synonym_score = min(0.4, 0.15 + 0.05 * len(matched_synonyms))
-                    score += synonym_score
-                    reasons.append(f"Industry synonyms: {', '.join(matched_synonyms[:3])}")
+                    # More stringent: only give full if multiple matches
+                    if len(matched_synonyms) >= 2:
+                        score += 0.35
+                        reasons.append(f"Industry: {industry} (synonyms)")
+                    else:
+                        score += 0.15
+                        reasons.append(f"Industry: partial match")
 
-        # --- Geography match (30%) ---
+        # --- Geography match (25%) ---
         geography = config.get('geography', '').lower()
         if geography:
             if geography in search_text:
-                score += 0.3
-                reasons.append(f"Geography match: {geography}")
+                score += 0.25
+                reasons.append(f"Geography: {geography}")
             else:
-                # Synonym match
+                # More strict geography matching
                 geo_synonyms = self._get_geo_synonyms(geography)
                 matched_geo = [s for s in geo_synonyms if s in search_text]
                 if matched_geo:
-                    geo_score = min(0.3, 0.1 + 0.05 * len(matched_geo))
-                    score += geo_score
-                    reasons.append(f"Geography synonyms: {', '.join(matched_geo[:2])}")
+                    # Only give full if multiple matches
+                    if len(matched_geo) >= 2:
+                        score += 0.25
+                        reasons.append(f"Geography: {geography}")
+                    else:
+                        score += 0.10
+                        reasons.append(f"Geography: partial")
 
-        # --- Product relevance (20%) ---
+        # --- Company size match (25%) ---
+        employees = company.get('employees', 0)
+        min_emp = config.get('min_employees', 50)
+        max_emp = config.get('max_employees', 500)
+        
+        if employees > 0:
+            if min_emp <= employees <= max_emp:
+                score += 0.25
+                reasons.append(f"Size: {employees} employees ✅")
+            elif employees < min_emp:
+                score += 0.10
+                reasons.append(f"Size: {employees} (below min)")
+            elif employees > max_emp:
+                score += 0.05
+                reasons.append(f"Size: {employees} (above max)")
+        else:
+            # Unknown employee count - small penalty
+            score += 0.05
+            reasons.append("Size: unknown")
+
+        # --- Product relevance (15%) ---
         product = config.get('product', '').lower()
         if product:
             product_words = [w for w in product.split() if len(w) > 3]
             matches = sum(1 for w in product_words if w in search_text)
             if matches > 0:
-                score += 0.2 * (matches / max(len(product_words), 1))
-                reasons.append(f"Product relevance")
-
-        # --- Source bonus (10%) ---
-        if company.get('source') in ['tavily', 'groq_generated']:
-            score += 0.1
-            reasons.append("Verified source")
+                # Only give full if product is clearly mentioned
+                match_ratio = matches / max(len(product_words), 1)
+                if match_ratio >= 0.5:
+                    score += 0.15
+                    reasons.append("Product: relevant")
+                else:
+                    score += 0.08
+                    reasons.append("Product: partial")
 
         if not reasons:
             reasons.append("Basic match")
 
-        return score, reasons
+        return min(score, 1.0), reasons
 
     def _get_industry_synonyms(self, industry: str) -> List[str]:
-        """Get synonyms for an industry"""
         for key, synonyms in self.INDUSTRY_SYNONYMS.items():
             if key in industry or industry in key:
                 return synonyms
-        # Fallback: split industry into words
         return industry.split()
 
     def _get_geo_synonyms(self, geography: str) -> List[str]:
-        """Get synonyms for a geography"""
         for key, synonyms in self.GEO_SYNONYMS.items():
             if key in geography or geography in key:
                 return synonyms
