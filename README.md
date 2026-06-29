@@ -16,7 +16,7 @@
 |------|------------------------------|
 | Sreevibha Mugata | sreevibha1215@gmsil.com |
 | Sri Varsha Pinninty | srivarshapinninty@gmail.com |
-| Samhita Siddamshetty | samhitasiddamshetty@gmail.com |
+| Samhita Siddamshetty | samhita1100@gmail.com |
 
 ---
 
@@ -110,7 +110,7 @@ Instead of spending hours researching, the sales manager simply writes:
 ---
 
 ## 🏗️ Architecture
-![Architecture Diagram](system_architecture_leadSenseAI.jpg)
+![Architecture Diagram](system_architecture_leadSenseAI.jpeg)
 
 ---
 
