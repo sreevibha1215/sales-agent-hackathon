@@ -14,5 +14,4 @@ class SearchTool:
                 {"title": "Mock Company 2", "content": "Mock description"}
             ]
         
-        # TODO: Implement Tavily API call
         return []

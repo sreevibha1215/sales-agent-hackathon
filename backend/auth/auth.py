@@ -10,21 +10,12 @@ load_dotenv(Path(__file__).parent.parent / 'backend' / '.env')
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-# ============================================
-# DEBUG PRINT - REMOVE AFTER FIX
-# ============================================
-print(f"🔑 SUPABASE_URL: {SUPABASE_URL}")
-print(f"🔑 SUPABASE_KEY: {SUPABASE_KEY[:20] if SUPABASE_KEY else 'MISSING'}...")
-print(f"📂 Current directory: {os.getcwd()}")
-
 if not SUPABASE_URL:
     raise ValueError("❌ SUPABASE_URL is None!")
 if not SUPABASE_KEY:
     raise ValueError("❌ SUPABASE_KEY is None!")
 
-# ============================================
 # CREATE SUPABASE CLIENT
-# ============================================
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def signup_user(email: str, password: str):

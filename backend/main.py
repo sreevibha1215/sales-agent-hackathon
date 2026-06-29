@@ -9,18 +9,15 @@ from typing import Optional
 from dotenv import load_dotenv
 
 
-# ============================================
-# PERSON C'S IMPORTS (Auth, Database, Tools)
-# ============================================
+# (Auth, Database, Tools)
 from auth.auth import signup_user, login_user, logout_user, get_current_user
 from tools.gemini_tool import extract_config
 from database.db import get_connection
 from memory.redis_client import save_to_memory, get_from_memory
 
 
-# ============================================
-# YOUR IMPORTS (Agents, LangGraph, Discovery)
-# ============================================
+#  (Agents, LangGraph, Discovery)
+
 from api.discovery import router as discovery_router
 from api.config import router as config_router
 
@@ -32,9 +29,7 @@ app = FastAPI(
     version="2.0.0"
 )
 
-# ============================================
 # CORS
-# ============================================
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -45,9 +40,7 @@ app.add_middleware(
 
 security = HTTPBearer()
 
-# ============================================
-# AUTH MODELS (Person C)
-# ============================================
+# AUTH MODELS 
 class AuthRequest(BaseModel):
     email: str
     password: str
@@ -58,9 +51,31 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
         raise HTTPException(status_code=401, detail="Invalid token")
     return result["user"]
 
-# ============================================
-# AUTH ROUTES (Person C)
-# ============================================
+
+from groq import Groq
+
+class ChatRequest(BaseModel):
+    messages: list
+    context: str = ""
+
+@app.post("/api/chat")
+async def chat(req: ChatRequest, user=Depends(verify_token)):
+    client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+    
+    system = f"""You are a B2B sales intelligence assistant. You have access to these prospect discovery results:
+{req.context}
+
+Answer questions about these results concisely and helpfully. Recommend specific companies and contacts when asked. Be direct and actionable."""
+
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{"role": "system", "content": system}] + req.messages,
+        max_tokens=500,
+        temperature=0.7
+    )
+    
+    return {"reply": response.choices[0].message.content}
+# AUTH ROUTES 
 @app.post("/api/auth/signup")
 async def signup(req: AuthRequest):
     result = signup_user(req.email, req.password)
@@ -84,9 +99,8 @@ async def logout(credentials: HTTPAuthorizationCredentials = Depends(security)):
 async def me(user=Depends(verify_token)):
     return {"user": user}
 
-# ============================================
-# WORKSPACE ROUTES (Person C)
-# ============================================
+# WORKSPACE ROUTES 
+
 class WorkspaceCreate(BaseModel):
     name: str
 
@@ -99,7 +113,6 @@ async def create_workspace(req: WorkspaceCreate, user=Depends(verify_token)):
     # Generate a UUID for the workspace
     workspace_id = str(uuid.uuid4())
     
-    # ✅ Correctly format the SQL with 3 placeholders and 3 values
     cur.execute(
         "INSERT INTO workspaces (id, user_id, name) VALUES (%s, %s, %s) RETURNING id, name, created_at",
         (workspace_id, user_id, req.name)
@@ -180,9 +193,7 @@ async def delete_workspace(workspace_id: str, user=Depends(verify_token)):
     conn.close()
     return {"message": "Workspace deleted"}
 
-# ============================================
-# COMPANY ROUTES (Person C)
-# ============================================
+# COMPANY ROUTES 
 class CompanyAdd(BaseModel):
     name: str
 
@@ -213,18 +224,9 @@ async def list_companies(workspace_id: str, user=Depends(verify_token)):
     conn.close()
     return [{"id": r[0], "name": r[1], "score": r[2], "status": r[3]} for r in rows]
 
-# ============================================
-# CONFIG EXTRACTION (Person C)
-# ============================================
-
-# ============================================
-# YOUR ADVANCED DISCOVERY WITH LANGGRAPH
-# ============================================
+#  ADVANCED DISCOVERY WITH LANGGRAPH
 from pydantic import BaseModel
 
-# ============================================
-# ROOT & HEALTH
-# ============================================
 @app.get("/")
 async def root():
     return {
@@ -246,9 +248,7 @@ app.include_router(discovery_router, prefix="/api/discovery")
 app.include_router(config_router, prefix="/api/config")
 
 
-# ============================================
 # RUN
-# ============================================
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

@@ -56,7 +56,7 @@ class BuyingIntentAgent:
         if employees > 0:
             score += 20  # has employee data = real company
             if 50 <= employees <= 1000:
-                score += 5  # bonus for ideal size
+                score += 5  
 
         # Tech stack match (25%)
         tech_stack = company.get('tech_stack', [])
@@ -70,7 +70,7 @@ class BuyingIntentAgent:
         # Has real contacts from enrichment (20%)
         contacts = company.get('contacts', [])
         if isinstance(contacts, list) and len(contacts) > 0:
-            score+=10 + min(len(contacts) * 2, 20)
+            score+= 10 + min(len(contacts) * 2, 20)
 
         # ICP score bonus
         icp_score = self._parse_number(company.get('icp_score', 0))
