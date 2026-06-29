@@ -335,4 +335,4 @@ Measures how likely a company is to buy:
 
 ---
 
-*Built with ❤️ for the Agentic AI Hackathon*
+*Built with ❤️ for the XLVentures AI Hackathon*
