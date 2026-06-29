@@ -10,12 +10,13 @@
 ---
 
 ## 👥 Team Details
+## AVENGERS
 
-| Name |
-|------|
-| Sreevibha Mugata |
-| Sri Varsha Pinninty |
-| Samhita Siddamshetty |
+| Name | Mail id |
+|------|------------------------------|
+| Sreevibha Mugata | sreevibha1215@gmsil.com |
+| Sri Varsha Pinninty | srivarshapinninty@gmail.com |
+| Samhita Siddamshetty | samhitasiddamshetty@gmail.com |
 
 ---
 
