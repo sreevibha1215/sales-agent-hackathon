@@ -8,28 +8,35 @@
 [![Hackathon](https://img.shields.io/badge/Hackathon-Agentic%20AI-red.svg)]()
 
 ---
-###👥 Team Details
-Name	           
-Sreevibha Mugata	
-Sri Varsha Pinninty	
-Samhita Siddamshetty	
+
+## 👥 Team Details
+
+| Name |
+|------|
+| Sreevibha Mugata |
+| Sri Varsha Pinninty |
+| Samhita Siddamshetty |
+
+---
+
 ## 📖 Project Overview
 
-**ProspectAI** is a reusable Agentic AI Platform that automates B2B customer discovery using LangGraph-powered agents.
+**LeadSenseAI** is a reusable Agentic AI Platform that automates B2B customer discovery using LangGraph-powered agents.
 
 ### The Problem
 
-Sales teams spend **60-70% of their time** manually researching prospects instead of selling. They open LinkedIn, Crunchbase, Google News, company websites, and job portals. They create spreadsheets, search for decision-makers, guess email addresses, and repeat the same process every week.
+Sales teams spend **60–70% of their time** manually researching prospects instead of selling. They open LinkedIn, Crunchbase, Google News, company websites, and job portals — creating spreadsheets, searching for decision-makers, guessing email addresses, and repeating the same process every week.
 
-**The Result**: $1.2M annual waste per company (Forrester)
+> **The Result:** $1.2M annual waste per company *(Forrester)*
 
 ### The Solution
 
 > *"Turn 'Find me the best customers' into a one-line conversation instead of a week of manual research."*
 
-ProspectAI uses **6 specialized AI agents** orchestrated by **LangGraph** to:
+LeadSenseAI uses **6 specialized AI agents** orchestrated by **LangGraph** to:
+
 1. 🔍 Discover real companies from the web
-2. 🎯 Qualify them against your Ideal Customer Profile
+2. 🎯 Qualify them against your Ideal Customer Profile (ICP)
 3. 🏢 Enrich with real company data
 4. 👤 Find real decision-makers with contact details
 5. 📊 Score buying intent
@@ -37,7 +44,7 @@ ProspectAI uses **6 specialized AI agents** orchestrated by **LangGraph** to:
 
 ---
 
-## 🎯 Business Use Case (30% of Evaluation)
+## 🎯 Business Use Case
 
 ### The Scenario: Salesforce VP of Sales
 
@@ -45,24 +52,24 @@ ProspectAI uses **6 specialized AI agents** orchestrated by **LangGraph** to:
 
 **The Challenge:**
 - Thousands of companies raise funding, hire employees, and expand daily
-- Sales teams spend 60-70% of time on manual research
+- Sales teams spend 60–70% of their time on manual research
 - By the time they identify the right customer, the opportunity is gone
 
 **The Business Question:**
 > *"Who should we contact next?"*
 
-### How ProspectAI Solves It
+### How LeadSenseAI Solves It
 
 Instead of spending hours researching, the sales manager simply writes:
 
 > *"Find SaaS companies with 200–1500 employees that recently raised funding, are hiring sales teams, and would benefit from an AI-powered CRM. Target personas: VP of Sales, CRO, Head of Sales Operations. Tech stack signals: Salesforce, HubSpot, AWS."*
 
-### The ProspectAI Workflow
+### The Agent Workflow
 
 | Step | Agent | Action | Business Value |
 |------|-------|--------|----------------|
 | 1 | **Planner Agent** | Understands the request, creates execution plan | No hardcoded workflows |
-| 2 | **Market Intelligence Agent** | Monitors news, funding, hiring, product launches | Finds companies in buying phase |
+| 2 | **Market Intelligence Agent** | Monitors news, funding, hiring, product launches | Finds companies in the buying phase |
 | 3 | **ICP Qualification Agent** | Checks industry, size, revenue, geography | Only relevant companies move forward |
 | 4 | **Company Intelligence Agent** | Enriches with real company data | Sales team understands the business |
 | 5 | **Contact Intelligence Agent** | Finds decision-makers with verified contacts | No more LinkedIn stalking |
@@ -72,42 +79,66 @@ Instead of spending hours researching, the sales manager simply writes:
 
 ### Example Business Output
 
-#### Company #1: Freshworks
+#### 🥇 Company #1: Freshworks
 
 | Metric | Value |
 |--------|-------|
 | **Intent Score** | 92/100 |
 | **Reason** | Raised funding recently, expanding globally, hiring 52 sales executives |
 | **Decision Makers** | VP Sales, CRO, Head of Revenue |
-| **Contacts** | ✅ Email, ✅ Phone, ✅ LinkedIn |
+| **Contacts** | ✅ Email &nbsp; ✅ Phone &nbsp; ✅ LinkedIn |
+| **Recommended Action** | Schedule a product demo within 7 days highlighting CRM automation and AI-assisted sales forecasting |
 
-**Recommended Action:**
-> *"Schedule a product demonstration within the next seven days highlighting CRM automation and AI-assisted sales forecasting."*
-
-#### Company #2: Zoho
+#### 🥈 Company #2: Zoho
 
 | Metric | Value |
 |--------|-------|
 | **Intent Score** | 88/100 |
 | **Reason** | Large enterprise expansion but lower immediate buying urgency |
-
-**Recommended Action:**
-> *"Focus on AI integrations instead of CRM replacement."*
+| **Recommended Action** | Focus on AI integrations rather than CRM replacement |
 
 ### Business Impact
 
-| Metric | Before | After ProspectAI |
-|--------|--------|------------------|
-| **Research Time** | 60-70% of work week | < 10% |
-| **Lead Quality** | Inconsistent | 3x better qualification |
-| **Deal Close Rate** | Industry average | 2x improvement |
+| Metric | Before LeadSenseAI | After LeadSenseAI |
+|--------|--------------------|-------------------|
+| **Research Time** | 60–70% of work week | < 10% |
+| **Lead Quality** | Inconsistent | 3× better qualification |
+| **Deal Close Rate** | Industry average | 2× improvement |
 | **Annual Waste** | $1.2M per company | Eliminated |
 
 ---
 
 ## 🏗️ Architecture
 
-
+```
+┌─────────────────────────────────────────────────────────┐
+│                     React Frontend                      │
+│           (Tailwind CSS + Framer Motion)                │
+└────────────────────────┬────────────────────────────────┘
+                         │ REST API
+┌────────────────────────▼────────────────────────────────┐
+│                  FastAPI Backend                         │
+│              (JWT Auth via Supabase)                     │
+└────────────────────────┬────────────────────────────────┘
+                         │
+┌────────────────────────▼────────────────────────────────┐
+│              LangGraph Agent Orchestrator                │
+│                                                         │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐              │
+│  │ Market   │  │   ICP    │  │ Company  │              │
+│  │ Intel    │→ │ Qualify  │→ │  Intel   │              │
+│  └──────────┘  └──────────┘  └──────────┘              │
+│        ┌──────────┐  ┌──────────┐  ┌──────────┐        │
+│        │ Contact  │→ │  Intent  │→ │  Reco.   │        │
+│        │  Intel   │  │  Score   │  │  Agent   │        │
+│        └──────────┘  └──────────┘  └──────────┘        │
+└─────────────────────────────────────────────────────────┘
+                         │
+┌────────────────────────▼────────────────────────────────┐
+│              Data & External Services                    │
+│  PostgreSQL │ Redis │ ChromaDB │ Groq │ Tavily │ Hunter │
+└─────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -115,8 +146,8 @@ Instead of spending hours researching, the sales manager simply writes:
 
 ### Prerequisites
 
-| Requirement | Version | Installation |
-|-------------|---------|--------------|
+| Requirement | Version | Link |
+|-------------|---------|------|
 | **Python** | 3.12+ | [Download](https://python.org) |
 | **Node.js** | 18+ | [Download](https://nodejs.org) |
 | **Docker** | 24+ | [Download](https://docker.com) |
@@ -127,18 +158,24 @@ Instead of spending hours researching, the sales manager simply writes:
 | Service | Purpose | Free Tier | Get It |
 |---------|---------|-----------|--------|
 | **Groq** | LLM for agents | ✅ Free | [console.groq.com](https://console.groq.com) |
-| **Tavily** | Web search | ✅ 1000 calls/month | [tavily.com](https://tavily.com) |
+| **Tavily** | Web search | ✅ 1,000 calls/month | [tavily.com](https://tavily.com) |
 | **Hunter.io** | Contact discovery | ✅ 25 searches/month | [hunter.io](https://hunter.io) |
 | **Supabase** | Authentication | ✅ Free | [supabase.com](https://supabase.com) |
+
+---
 
 ### Step 1: Clone the Repository
 
 ```bash
 git clone https://github.com/sreevibha1215/sales-agent-hackathon.git
 cd sales-agent-hackathon
+```
 
+### Step 2: Configure Environment Variables
 
-### Step 2: Set Up Environment Variables
+Create a `.env` file in the root directory:
+
+```env
 # Supabase Authentication
 SUPABASE_URL=your_supabase_project_url
 SUPABASE_KEY=your_supabase_anon_key
@@ -160,149 +197,170 @@ CHROMA_URL=http://localhost:8001
 JWT_SECRET=your_jwt_secret_key
 JWT_ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=1440
+```
 
-### Step 3: Start backend Services
+### Step 3: Start Backend Services
+
+```bash
 # Start Docker containers (PostgreSQL, Redis, ChromaDB)
 docker-compose up -d
 
 # Install backend dependencies
 cd backend
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source venv/bin/activate        # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
-# Initialize database
+# Initialize the database
 python database/db.py
 
 # Start FastAPI server
 uvicorn main:app --reload --port 8000
+```
 
-###Step 4: Start Frontend
+### Step 4: Start the Frontend
+
+```bash
 # Open a new terminal
 cd frontend
 npm install
 npm run dev
+```
 
+### Service URLs
 
-Service	URL
-Frontend	http://localhost:5173
-Backend API	http://localhost:8000
-API Documentation	http://localhost:8000/docs
+| Service | URL |
+|---------|-----|
+| **Frontend** | http://localhost:5173 |
+| **Backend API** | http://localhost:8000 |
+| **API Documentation** | http://localhost:8000/docs |
 
-Usage Guide
-1. Login / Sign Up
-Demo account: demo@agentic.ai / Demo123!
+---
 
-2. Create a Workspace
-Click "New Workspace" in the sidebar
+## 📖 Usage Guide
 
-Name your workspace (e.g., "SaaS Discovery")
+### 1. Login / Sign Up
 
-3. Configure Your ICP
-Describe your ideal customer in natural language
+Use the demo account to get started immediately:
 
-Example: "We sell CRM software to SaaS companies in India with 50-500 employees. We want to reach VP of Sales or CRO."
+| Field | Value |
+|-------|-------|
+| **Email** | demo@agentic.ai |
+| **Password** | Demo123! |
 
-Review and edit the extracted configuration
+### 2. Create a Workspace
 
-4. Run Discovery
-Click "Launch Discovery Pipeline"
+- Click **"New Workspace"** in the sidebar
+- Name your workspace (e.g., `"SaaS Discovery"`)
 
-Watch 6 agents work in real-time
+### 3. Configure Your ICP
 
-5. Review Results
-View company cards with intent scores, decision-makers, and next actions
+Describe your ideal customer in natural language:
 
-Approve or reject recommendations
+> *"We sell CRM software to SaaS companies in India with 50–500 employees. We want to reach VP of Sales or CRO."*
 
-🧠 Agent Pipeline
-How Discovery Works
-Market Intelligence Agent (Groq + Tavily)
+Review and edit the extracted configuration before proceeding.
 
-Generates real company names using Groq
+### 4. Run Discovery
 
-Searches Tavily for company data
+- Click **"Launch Discovery Pipeline"**
+- Watch all 6 agents work in real-time
 
-ICP Qualification Agent (Smart Synonyms)
+### 5. Review Results
 
-Scores companies against your ICP
+- View company cards with intent scores, decision-makers, and next actions
+- Approve or reject recommendations
 
-Filters with 0.3+ threshold
+---
 
-Company Intelligence Agent (Tavily + Groq)
+## 🧠 Agent Pipeline
 
-Enriches with real data: employees, revenue, tech stack
+### How Discovery Works
 
-Contact Intelligence Agent (Hunter + Tavily)
+| Agent | Technology | Description |
+|-------|-----------|-------------|
+| **Market Intelligence Agent** | Groq + Tavily | Generates real company names using Groq; searches Tavily for company data |
+| **ICP Qualification Agent** | Smart Synonyms | Scores companies against your ICP; filters with 0.3+ threshold |
+| **Company Intelligence Agent** | Tavily + Groq | Enriches with real data: employees, revenue, tech stack |
+| **Contact Intelligence Agent** | Hunter + Tavily | Finds real decision-makers with verified contact details |
+| **Buying Intent Agent** | Weighted Scoring | Scores 0–100% based on funding, size, revenue, tech, and contacts |
+| **Recommendation Agent** | Ranking | Sorts by intent score and generates next actions |
 
-Finds real decision-makers with contact details
+---
 
-Buying Intent Agent (Weighted Scoring)
+## 🛠️ Technology Stack
 
-Scores 0-100% based on funding, size, revenue, tech, contacts
+### Backend
 
-Recommendation Agent (Ranking)
+| Technology | Purpose |
+|-----------|---------|
+| **FastAPI** | API framework |
+| **LangGraph** | Agent orchestration |
+| **LangChain** | LLM integration |
+| **Groq** | LLM provider |
+| **Tavily** | Web search |
+| **Hunter.io** | Contact discovery |
+| **Supabase** | Authentication |
+| **PostgreSQL** | Primary database |
+| **Redis** | Caching & memory |
+| **ChromaDB** | Vector storage |
 
-Sorts by intent score, generates next actions
+### Frontend
 
-🛠️ Technology Stack
-Backend
-Technology     	Purpose
-FastAPI	API    framework
-LangGraph	    Agent orchestration
-LangChain	    LLM integration
-Groq	        LLM provider
-Tavily	       Web search
-Hunter.io	   Contact discovery
-Supabase	    Authentication
-PostgreSQL	   Primary database
-Redis	Caching & memory
-ChromaDB	Vector storage
-Frontend
-Technology	Purpose
-React 18     framework
-Tailwind CSS	Styling
-Framer Motion	Animations
-Recharts	Data visualization
-Axios	API client
-📊 Scoring System
-ICP Score (0.0 - 1.0)
+| Technology | Purpose |
+|-----------|---------|
+| **React 18** | UI framework |
+| **Tailwind CSS** | Styling |
+| **Framer Motion** | Animations |
+| **Recharts** | Data visualization |
+| **Axios** | API client |
+
+---
+
+## 📊 Scoring System
+
+### ICP Score (0.0 – 1.0)
+
 Measures how well a company matches your Ideal Customer Profile:
 
-Industry match: 35%
+| Signal | Weight |
+|--------|--------|
+| Industry match | 35% |
+| Geography match | 25% |
+| Company size | 25% |
+| Product relevance | 15% |
 
-Geography match: 25%
+### Intent Score (0% – 100%)
 
-Company size: 25%
-
-Product relevance: 15%
-
-Intent Score (0% - 100%)
 Measures how likely a company is to buy:
 
-Funding signals: 35%
+| Signal | Weight |
+|--------|--------|
+| Funding signals | 35% |
+| Company size match | 20% |
+| Revenue signals | 15% |
+| Tech stack match | 15% |
+| Contacts quality | 15% |
 
-Company size match: 20%
+---
 
-Revenue signals: 15%
+## 🔗 Repository
 
-Tech stack match: 15%
+**GitHub:** [https://github.com/sreevibha1215/sales-agent-hackathon](https://github.com/sreevibha1215/sales-agent-hackathon)
 
-Contacts quality: 15%
+---
 
+## 🙏 Acknowledgments
 
-🔗 GitHub Repository
-Repository Link: https://github.com/sreevibha1215/sales-agent-hackathon
+| Tool | Contribution |
+|------|-------------|
+| [LangGraph](https://langchain-ai.github.io/langgraph/) | Powerful agent orchestration |
+| [Groq](https://groq.com) | Fast LLM inference |
+| [Tavily](https://tavily.com) | Real-time web search |
+| [Hunter.io](https://hunter.io) | Contact discovery |
+| [Supabase](https://supabase.com) | Authentication |
+| [FastAPI](https://fastapi.tiangolo.com) | Amazing API framework |
 
-🙏 Acknowledgments
-LangGraph - For powerful agent orchestration
+---
 
-Groq - For fast LLM inference
-
-Tavily - For real-time web search
-
-Hunter.io - For contact discovery
-
-Supabase - For authentication
-
-FastAPI - For the amazing API framework
+*Built with ❤️ for the Agentic AI Hackathon*
